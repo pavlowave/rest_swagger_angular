@@ -7,8 +7,8 @@ from django.contrib.auth.models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'password']  # Добавьте другие поля, если необходимо
-        extra_kwargs = {'password': {'write_only': True}}  # Указываем, что пароль только для записи
+        fields = ['username', 'password']
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         user = User(**validated_data)
@@ -19,7 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
 class BreederSerializer(serializers.ModelSerializer):
     class Meta:
         model = Breeder
-        fields = ['name', 'email']  # Поля для создания заводчика
+        fields = ['name', 'email']  
 
 
 class CatSerializer(serializers.ModelSerializer):
