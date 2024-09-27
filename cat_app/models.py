@@ -4,11 +4,10 @@ from django.contrib.auth.models import User
 
 class Breeder(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
-    email = models.EmailField(unique=True)
+
 
     def __str__(self):
-        return self.name
+        return self.username
 
 
 class Cat(models.Model):

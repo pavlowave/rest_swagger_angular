@@ -1,53 +1,41 @@
-from rest_framework.exceptions import ValidationError
 from rest_framework import generics
-from .models import Breeder, Cat
-from .serializers import BreederSerializer, CatSerializer, UserSerializer
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.authtoken.models import Token
+from .models import Breeder, Cat
+from .serializers import BreederSerializer, UserSerializer, CatSerializer
 
 
-class RegisterBreederView(generics.CreateAPIView):
+class BreederRegistrationView(generics.CreateAPIView):
     queryset = Breeder.objects.all()
-    serializer_class = BreederSerializer  # Сериализатор для Breeder
+    serializer_class = BreederSerializer
+    permission_classes = [AllowAny]
 
-    def post(self, request, *args, **kwargs):
-        user_serializer = UserSerializer(data=request.data)
+    def create(self, request, *args, **kwargs):
+        user_data = request.data.get('user')  # Извлекаем данные для пользователя
+        if user_data is None:
+            return Response({"error": "User data is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_serializer = UserSerializer(data=user_data)
+
         if user_serializer.is_valid():
-            user = user_serializer.save()  # Сохраняем пользователя
-            breeder = Breeder.objects.create(user=user, name=request.data['name'], email=request.data['email'])
-            token, created = Token.objects.get_or_create(user=user)  # Создаем токен для пользователя
-            return Response({'token': token.key}, status=status.HTTP_201_CREATED)
-        return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            user = user_serializer.save()  # Создаем пользователя
+            breeder = Breeder.objects.create(user=user)  # Создаем объект Breeder, связывая с пользователем
+
+            # Сериализуем и возвращаем данные
+            breeder_serializer = self.get_serializer(breeder)
+            return Response(breeder_serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# Список котов и создание нового кота
-class CatListCreateView(generics.ListCreateAPIView):
+
+class CatCreateView(generics.CreateAPIView):
+    queryset = Cat.objects.all()
     serializer_class = CatSerializer
     permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Возвращаем только котов текущего заводчика
-        return Cat.objects.filter(breeder__user=self.request.user)
 
     def perform_create(self, serializer):
-        # Проверяем, есть ли у пользователя объект Breeder
-        try:
-            breeder = Breeder.objects.get(user=self.request.user)
-        except Breeder.DoesNotExist:
-            raise ValidationError("Текущий пользователь не является заводчиком.")
-        serializer.save(breeder=breeder)
-
-
-# Детали кота (получение, обновление и удаление только для своего кота)
-class CatDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = CatSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # Возвращаем только котов текущего заводчика
-        breeder = Breeder.objects.filter(user=self.request.user).first()
-        if breeder:
-            return Cat.objects.filter(breeder=breeder)
-        return Cat.objects.none()
+        breeder = Breeder.objects.get(user=self.request.user)  # Получаем заводчика по текущему пользователю
+        serializer.save(breeder=breeder)  # Привязываем кота к заводчику

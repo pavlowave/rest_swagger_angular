@@ -1,9 +1,8 @@
 from rest_framework import serializers
-from .models import Breeder, Cat
-from rest_framework import serializers
 from django.contrib.auth.models import User
+from .models import Breeder, Cat
 
-
+# Сериалайзер для пользователя
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -16,13 +15,16 @@ class UserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+# Сериалайзер для заводчика
 class BreederSerializer(serializers.ModelSerializer):
+    user = UserSerializer()  # Вложенный сериалайзер для пользователя
+
     class Meta:
         model = Breeder
-        fields = ['name', 'email']  
+        fields = ['user']
 
-
+# Сериалайзер для кошки
 class CatSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cat
-        fields = ['id', 'name', 'age', 'breed', 'fluffiness', 'breeder']
+        fields = ['name', 'age', 'breed', 'fluffiness', 'breeder']
